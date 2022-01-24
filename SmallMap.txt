@@ -1,20 +1,4 @@
 Pineapple Moon Base
-Radiators: 2
-Chamber 1
-4 Pineapples
-North: 2
-West: 3
-Chamber 2
-1 Pineapple
-South: 1
-Chamber 3
-2 Pineapples
-East: 1
-West: 4
-Chamber 4
-0 Pineapples
-East: 3
-Pineapple Moon Base
 Radiators: 45
 Chamber 165
 5 Pineapples

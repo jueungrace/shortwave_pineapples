@@ -63,7 +63,7 @@ function parseInput(file) {
 }
 
 /**
- * Function that calculates a heatmap for an array of radiators
+ * Function that calculates a heatmap given a single chamber
  * @param {string} chamber
  * @param {[key:string]:string[]} list 
  * @param {number} level 
@@ -113,7 +113,6 @@ function calculateGrowth(heatmap, pineapples) {
 }
 
 /**
- * NO LONGER USED:
  * Generates all potential combinations of radiator placement based on # of radiators available
  * @param {string[]} chambersArr 
  * @param {number} finalSize 
@@ -138,7 +137,7 @@ function createCombosOfSize(chambersArr, finalSize) {
     comboHelper(arr, arrSize, finalSize, tempIdx+1, Array.from(temp), currIdx+1)
 
     // With current element excluded
-    comboHelper(arr, arrSize, finalSize, tempIdx, temp, currIdx+1)
+    comboHelper(arr, arrSize, finalSize, tempIdx, Array.from(temp), currIdx+1)
 
   }
 
@@ -157,61 +156,45 @@ function createCombosOfSize(chambersArr, finalSize) {
  */
 function determineBestRadiatorPlacement(radiators, pineapples, adjacencyList) {
 
-  //const radiatorCombos = createCombosOfSize(Object.keys(pineapples), radiators)
+  let result = new Set()
+  let growth = 0
+  let heat 
 
-  let maxPineapples = []
-  let maps = []
-  let result = []
+  // Greedy algorithm approach:
 
   for (let chamber in adjacencyList) {
 
-    const heatmap = calculateHeat(chamber, adjacencyList, 0)
+    // Calculate the base heatmap + pineapple production for each chamber
+    const tempHeat = calculateHeat(chamber, adjacencyList, 0, heat)
+    const fruits = calculateGrowth(tempHeat, pineapples)
 
-    if (heatmap) {
+    if (fruits === 0) continue
 
-      const growth = calculateGrowth(heatmap, pineapples)
+    const without = Object.keys(adjacencyList).filter(key => key !== chamber)
+    const combos = createCombosOfSize(without, radiators - 1)
 
-      if (growth > 0) {
-        maps.push(heatmap)
-        maxPineapples.push(growth)
-        result.push(chamber)
+    for (let arr of combos) {
+
+      // Calculate the heatmap for the current combination of chambers
+      let currHeat = Object.create(tempHeat)
+
+      for (let neighbor of arr) {
+        currHeat = calculateHeat(neighbor, adjacencyList, 0, currHeat)
       }
       
-      // if (result.length < radiators) {
-      //   maps.push(heatmap)
-      //   maxPineapples.push(growth)
-      //   result.push(chamber)
-      // } else {
+      let currFruits = calculateGrowth(currHeat, pineapples)
 
-      // }
-
+      if (currFruits > growth) {
+        growth = currFruits
+        result = new Set(arr)
+      }
     }
 
+    result.add(chamber)
+
   }
 
-  return {
-    result,
-    maps,
-    maxPineapples
-  }
-
-  // for (let combo of radiatorCombos) {
-
-  //   const heatmap = calculateHeat(combo, adjacencyList, 0)
-    
-  //   if (!Array.isArray(heatmap)) {
-  //     let growth = calculateGrowth(heatmap, pineapples)
-  //     if (growth > maxPineapples) {
-  //       maxPineapples = growth
-  //       result = combo
-  //     }
-  //   } else {
-  //     radiatorCombos = radiatorCombos.filter(arr => !arr.startsWith(heatmap))
-  //   }
-
-  // }
-
-  //return result.join(', ')
+  return Array.from(result).join(', ')
 
 }
 
@@ -228,8 +211,8 @@ function pineappleMoonBase(file) {
 
     const { radiators, pineapples, adjacencyList } = base
     const result = determineBestRadiatorPlacement(radiators, pineapples, adjacencyList)
-    console.log(result)
-    //fs.writeFileSync('result.txt', JSON.stringify(result), 'utf-8')
+    //console.log(result)
+    fs.writeFileSync('result.txt', JSON.stringify(result), 'utf-8')
 
   }
 
