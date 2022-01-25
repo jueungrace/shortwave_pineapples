@@ -84,7 +84,6 @@ function calculateHeat(chamber, list, level, heat={}) {
   }
 
   for (let neighbor of list[chamber]) {
-
     // Iterate over the chambers the current chamber is connected to
     calculateHeat(neighbor, list, level + 1, heat)
 
@@ -105,6 +104,7 @@ function calculateGrowth(heatmap, pineapples) {
   let growth = 0
 
   for (let chamber in heatmap) {
+    if (heatmap[chamber] >= 11) return false
     if (heatmap[chamber] > 3 && heatmap[chamber] < 7) growth += pineapples[chamber]
   }
 
@@ -114,38 +114,69 @@ function calculateGrowth(heatmap, pineapples) {
 
 /**
  * Generates all potential combinations of radiator placement based on # of radiators available
- * @param {string[]} chambersArr 
- * @param {number} finalSize 
+ * @param {string[]} arr 
+ * @param {number} k 
  * @returns {[][]}
  */
-function createCombosOfSize(chambersArr, finalSize) {
+ function combinations(arr, k, adjacencyList, pineapples) {
 
-  let combos = []
-  let chambers = chambersArr.length
+  let result = []
+  let temp = []
 
-  function comboHelper(arr, arrSize, finalSize, tempIdx, temp=[], currIdx) {
+  let max = 0
+  let chambers = []
+  let mapCache = {}
 
-    if (tempIdx === finalSize) {
-      combos.push(temp)
-      return
-    }
+  function helper(arr, k, start, result, temp) {
+      if (temp.length === k) {
+          
+          let sub = [...temp]
+          
+          let heatmap 
+          let tempChambers = ''
 
-    if (currIdx >= arrSize) return
+          for (let chamber of sub) {
 
-    // With current element included
-    temp[tempIdx] = arr[currIdx]
-    comboHelper(arr, arrSize, finalSize, tempIdx+1, Array.from(temp), currIdx+1)
+            tempChambers += chamber
 
-    // With current element excluded
-    comboHelper(arr, arrSize, finalSize, tempIdx, Array.from(temp), currIdx+1)
+            if (mapCache[tempChambers]) {
+              heatmap = mapCache[tempChambers]
+              continue
+            }
 
+            if (!mapCache[tempChambers]) {
+              let tempHeatmap = calculateHeat(chamber, adjacencyList, 0, heatmap)
+              if (tempHeatmap === false) return
+              mapCache[tempChambers] = Object.assign(tempHeatmap)
+            }
+
+          }
+
+          let growth = calculateGrowth(heatmap, pineapples)
+
+          if (growth && growth > max) {
+            max = growth
+            chambers = sub
+            heat = heatmap
+          }
+
+          return
+      }
+
+      for (let i = start; i < arr.length; i++) {
+          temp.push(arr[i])
+          helper(arr, k, i + 1, result, temp)
+          temp.pop()
+      }
   }
 
-  comboHelper(chambersArr, chambers, finalSize, 0, [], 0)
-  
-  return combos
+  helper(arr, k, 0, result, temp)
+  return {
+    chambers,
+    max
+  }
+} 
 
-}
 
 /**
  * Calculates the best possible radiator placement for a single moon base
@@ -156,45 +187,8 @@ function createCombosOfSize(chambersArr, finalSize) {
  */
 function determineBestRadiatorPlacement(radiators, pineapples, adjacencyList) {
 
-  let result = new Set()
-  let growth = 0
-  let heat 
-
-  // Greedy algorithm approach:
-
-  for (let chamber in adjacencyList) {
-
-    // Calculate the base heatmap + pineapple production for each chamber
-    const tempHeat = calculateHeat(chamber, adjacencyList, 0, heat)
-    const fruits = calculateGrowth(tempHeat, pineapples)
-
-    if (fruits === 0) continue
-
-    const without = Object.keys(adjacencyList).filter(key => key !== chamber)
-    const combos = createCombosOfSize(without, radiators - 1)
-
-    for (let arr of combos) {
-
-      // Calculate the heatmap for the current combination of chambers
-      let currHeat = Object.create(tempHeat)
-
-      for (let neighbor of arr) {
-        currHeat = calculateHeat(neighbor, adjacencyList, 0, currHeat)
-      }
-      
-      let currFruits = calculateGrowth(currHeat, pineapples)
-
-      if (currFruits > growth) {
-        growth = currFruits
-        result = new Set(arr)
-      }
-    }
-
-    result.add(chamber)
-
-  }
-
-  return Array.from(result).join(', ')
+  const { chambers, max } = combinations(Object.keys(adjacencyList), radiators, adjacencyList, pineapples)
+  return chambers.join(", ")
 
 }
 
@@ -211,8 +205,8 @@ function pineappleMoonBase(file) {
 
     const { radiators, pineapples, adjacencyList } = base
     const result = determineBestRadiatorPlacement(radiators, pineapples, adjacencyList)
-    //console.log(result)
-    fs.writeFileSync('result.txt', JSON.stringify(result), 'utf-8')
+
+    fs.appendFileSync('result.txt', `${result}\n`)
 
   }
 
