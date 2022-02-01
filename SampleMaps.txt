@@ -22825,6 +22825,9 @@ South: 27
 West: 26
 East: 12
 Chamber 27
+4 Pineapples
+North: 19
+East: 20
 Chamber 16
 2 Pineapples
 South: 10
@@ -38259,6 +38262,3 @@ West: 6
 Chamber 7
 0 Pineapples
 North: 4
-4 Pineapples
-North: 19
-East: 20
